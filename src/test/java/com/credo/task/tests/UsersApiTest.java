@@ -9,23 +9,23 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class UsersApiTest extends UserClient {
+public class UsersApiTest extends BaseApiTest {
 
     private final UserClient client = new UserClient();
 
     @DataProvider
     public Object[][] userRequests() {
         return new Object[][]{
-            {"testGetAllUsers_Positive", Map.of(), 200, 4, "Alice"},
-            {"testFilterByAge_25", Map.of("age", "25"), 200, 2, "Bob"},
-            {"testFilterByAge_27", Map.of("age", "27"), 200, 1, "Nutsa"},
-            {"testFilterByAge_30", Map.of("age", "30"), 200, 1, "Alice"},
-            {"testFilterByGender_Male", Map.of("gender", "male"), 200, 2, "Bob"},
-            {"testFilterByGender_Female", Map.of("gender", "female"), 200, 2, "Alice"},
-            {"testInvalidAge_Negative", Map.of("age", "-1"), 400, null, null},
-            {"testInternalServerError_Negative", Map.of("trigger", "500"), 500, null, null},
-            {"testInvalidGender_Empty", Map.of("gender", "unknown", "mode", "empty"), 200, 0, null},
-            {"testInvalidGender_422", Map.of("gender","unknown","mode","422"), 422, null, null}
+                {"testGetAllUsers_Positive", Map.of(), 200, 3, "Alice"},
+                {"testFilterByAge_25",       Map.of("age","25"), 200, 1, "Bob"},
+                {"testFilterByAge_27",       Map.of("age","27"), 200, 1, "Mariam"},
+                {"testFilterByAge_30",       Map.of("age","30"), 200, 1, "Alice"},
+                {"testFilterByGender_Male",  Map.of("gender","male"),   200, 1, "Bob"},
+                {"testFilterByGender_Female",Map.of("gender","female"), 200, 2, "Alice"},
+                {"testInvalidAge_Negative",  Map.of("age","-1"), 400, null, null},
+                {"testInternalServerError",  Map.of("trigger","500"), 500, null, null},
+                {"testInvalidGender_Empty",  Map.of("gender","unknown","mode","empty"), 200, 0, null},
+                {"testInvalidGender_422",    Map.of("gender","unknown","mode","422"),  422, null, null}
         };
     }
 

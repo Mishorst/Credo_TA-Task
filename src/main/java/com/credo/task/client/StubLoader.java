@@ -14,10 +14,10 @@ import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.RestAssured.post;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.Matchers.is;
 
 public class StubLoader {
-
-    private static String mappingsUrl() {return "/__admin/mappings"; }
 
     public static List<User> readUsersFromFile( Path path){
         try {
@@ -27,68 +27,41 @@ public class StubLoader {
         }
     }
 
-    public static void postMapping(String name, Map<String, String> request, Object responseBody, Integer status) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("name", name);
-
-        Map<String, Object> req = new LinkedHashMap<>();
+    public static void postMapping(String name, Map<String,String> qp, Object body, int status) {
+        Map<String,Object> req = new LinkedHashMap<>();
         req.put("method", "GET");
         req.put("urlPath", "/users");
-        if (!request.isEmpty()) {
-            Map<String, Object> qp = new LinkedHashMap<>();
-            for (var e : request.entrySet()) {
-                qp.put(e.getKey(), Map.of("equalTo", String.valueOf(e.getValue())));
-            }
-            req.put("queryParameters", qp);
+        if (qp != null && !qp.isEmpty()) {
+            Map<String,Object> q = new LinkedHashMap<>();
+            qp.forEach((k,v) -> q.put(k, Map.of("equalTo", v)));
+            req.put("queryParameters", q);             // IMPORTANT
         }
-        body.put("request", req);
 
-        Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("status", status == null ? 200 : status);
-        resp.put("headers", Map.of("Content-Type", "application/json"));
-        if (responseBody != null) resp.put("jsonBody", responseBody);
-        body.put("response", resp);
+        Map<String,Object> resp = new LinkedHashMap<>();
+        resp.put("status", status);
+        resp.put("headers", Map.of("Content-Type","application/json"));
+        if (body != null) resp.put("jsonBody", body);
 
-        given()
-                .contentType("application/json")
-                .body(body)
-                .when()
-                .post(mappingsUrl())
-                .then()
-                .statusCode(201);
+        Map<String,Object> payload = new LinkedHashMap<>();
+        payload.put("name", name);
+        payload.put("request", req);
+        payload.put("response", resp);
+        payload.put("priority", (qp == null || qp.isEmpty()) ? 10 : 1);  // specific wins
+
+        given().contentType("application/json").body(payload)
+                .when().post("http://localhost:8080/__admin/mappings")
+                .then().statusCode(anyOf(is(201), is(409)));
     }
 
-    public static void registerPositiveAll(List<User> all){
-        postMapping("user-all", Map.of(), all, 200);
-    }
-
-    public static void registerFiltered(List<User> all, Map<String, String> qp){
-        Predicate<User> predicate = u -> true;
-        if(qp.containsKey("age")) {
-            int age = Integer.parseInt(qp.get("age"));
-            predicate = predicate.and(u -> u.getAge() > age);
-        }
-        if (qp.containsKey("gender")) {
-            String g = qp.get("gender");
-            predicate = predicate.and(u -> g.equalsIgnoreCase(u.getGender()));
-        }
-        List<User> filtered = all.stream().filter(predicate).collect(Collectors.toList());
+    public static void registerFiltered(List<User> all, Map<String,String> qp){
+        var filtered = all.stream().filter(u -> matches(u, qp)).toList();
         postMapping("users-" + qp, qp, filtered, 200);
     }
 
-    public static void register400ForInvalidAge(){
-        postMapping("users-age--1", Map.of("age", "-1"), null, 400);
-    }
-
-    public static void register500() {
-        postMapping("users-500", Map.of("trigger", "500"), null, 500);
-    }
-
-    public static void registerGenderUnknownEmpty() {
-        postMapping("users-gender-unknown-empty", Map.of("gender", "unknown", "mode", "empty"), List.of(), 200);
-    }
-
-    public static void registerGenderUnknown422() {
-        postMapping("users-gender-unknown-422", Map.of("gender", "unknown", "mode", "422"), null, 422);
+    private static boolean matches(User u, Map<String,String> qp){
+        boolean ok = true;
+        if (qp.containsKey("age"))    ok &= u.getAge() == Integer.parseInt(qp.get("age"));
+        if (qp.containsKey("gender")) ok &= qp.get("gender").equalsIgnoreCase(u.getGender());
+        return ok;
     }
 }
