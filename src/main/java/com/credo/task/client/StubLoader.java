@@ -34,7 +34,7 @@ public class StubLoader {
         if (qp != null && !qp.isEmpty()) {
             Map<String,Object> q = new LinkedHashMap<>();
             qp.forEach((k,v) -> q.put(k, Map.of("equalTo", v)));
-            req.put("queryParameters", q);             // IMPORTANT
+            req.put("queryParameters", q);
         }
 
         Map<String,Object> resp = new LinkedHashMap<>();
@@ -46,7 +46,7 @@ public class StubLoader {
         payload.put("name", name);
         payload.put("request", req);
         payload.put("response", resp);
-        payload.put("priority", (qp == null || qp.isEmpty()) ? 10 : 1);  // specific wins
+        payload.put("priority", (qp == null || qp.isEmpty()) ? 10 : 1);
 
         given().contentType("application/json").body(payload)
                 .when().post("http://localhost:8080/__admin/mappings")
