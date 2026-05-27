@@ -63,12 +63,12 @@ public abstract class BaseApiTest {
 
     @AfterMethod(alwaysRun = true)
     public void recordResult(ITestResult result) {
-        String method = result.getMethod().getMethodName();
-        boolean failedBefore = methodFailed.getOrDefault(method, false);
-        boolean failedNow = !result.isSuccess();
-        if (failedNow) methodFailed.put(method, true);
+        Object[] args = result.getParameters();
+        String testName = (args != null && args.length > 0 && args[0] instanceof String s && !s.isBlank())
+                ? s
+                : result.getMethod().getMethodName();
 
-        String status = (failedBefore || failedNow) ? "FAILED" : "PASSED";
-        dao.upsert(method, status, LocalDateTime.now());
+        String status = result.isSuccess() ? "PASSED" : "FAILED";
+        dao.upsert(testName, status, LocalDateTime.now());
     }
 }
